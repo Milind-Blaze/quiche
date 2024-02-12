@@ -222,6 +222,7 @@ fn main() {
             trace!("got {} bytes", len);
 
             let pkt_buf = &mut buf[..len];
+            // info!("Milind line 228, pkt_buf: {:?}", pkt_buf);
 
             if let Some(target_path) = conn_args.dump_packet_path.as_ref() {
                 let path = format!("{target_path}/{pkt_count}.pkt");
@@ -486,7 +487,10 @@ fn main() {
                 // Handle writable streams.
                 for stream_id in conn.writable() {
                     http_conn.handle_writable(conn, partial_responses, stream_id);
+                    // info!("Milind Handle Writable streams 492, stream_id: {:?}", stream_id);
                 }
+
+                
 
                 if http_conn
                     .handle_requests(
@@ -498,7 +502,8 @@ fn main() {
                         &mut buf,
                     )
                     .is_err()
-                {
+                {   
+                    info!("handle requests 506");
                     continue 'read;
                 }
             }
@@ -569,7 +574,9 @@ fn main() {
                     },
                 };
 
+                
                 total_write += write;
+                
 
                 // Use the first packet time to send, not the last.
                 let _ = dst_info.get_or_insert(send_info);

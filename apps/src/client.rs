@@ -327,9 +327,10 @@ pub fn connect(
 
         if conn.is_closed() {
             info!(
-                "connection closed, {:?} {:?}",
+                "connection closed, {:?} {:?} {:?}",
                 conn.stats(),
-                conn.path_stats().collect::<Vec<quiche::PathStats>>()
+                conn.path_stats().collect::<Vec<quiche::PathStats>>(),
+                app_data_start.elapsed(),
             );
 
             if !conn.is_established() {
@@ -418,6 +419,7 @@ pub fn connect(
             h_conn.handle_responses(&mut conn, &mut buf, &app_data_start);
         }
 
+    
         // Handle path events.
         while let Some(qe) = conn.path_event_next() {
             match qe {

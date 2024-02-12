@@ -44,6 +44,8 @@ use std::cell::RefCell;
 
 use std::path;
 
+use std::time::{SystemTime, UNIX_EPOCH};
+
 use ring::rand::SecureRandom;
 
 use quiche::ConnectionId;
@@ -69,6 +71,7 @@ pub struct PartialRequest {
     pub req: Vec<u8>,
 }
 
+#[derive(Debug)]
 pub struct PartialResponse {
     pub headers: Option<Vec<quiche::h3::Header>>,
     pub priority: Option<quiche::h3::Priority>,
@@ -482,7 +485,8 @@ impl HttpConn for Http09Conn {
         // Process all readable streams.
         for s in conn.readable() {
             while let Ok((read, fin)) = conn.stream_recv(s, buf) {
-                trace!("received {} bytes", read);
+                trace!("Milind: received {} bytes", read);
+                
 
                 let stream_buf = &buf[..read];
 
@@ -1245,6 +1249,8 @@ impl HttpConn for Http3Conn {
                             read, stream_id
                         );
 
+                        
+
                         let req = self
                             .reqs
                             .iter_mut()
@@ -1285,11 +1291,17 @@ impl HttpConn for Http3Conn {
 
                     if self.reqs_complete == reqs_count {
                         info!(
-                            "{}/{} response(s) received in {:?}, closing...",
+                            "Milind {}/{} response(s) received in {:?}, closing...",
                             self.reqs_complete,
                             reqs_count,
                             req_start.elapsed()
                         );
+
+                        let start = SystemTime::now();
+                        let since_the_epoch = start.duration_since(UNIX_EPOCH)
+                            .expect("Time went backwards");
+
+                        info!("Milind client timestamp: {}", since_the_epoch.as_micros());
 
                         if self.dump_json {
                             dump_json(
@@ -1392,6 +1404,8 @@ impl HttpConn for Http3Conn {
         partial_responses: &mut HashMap<u64, PartialResponse>, root: &str,
         index: &str, buf: &mut [u8],
     ) -> quiche::h3::Result<()> {
+
+        // info!("Milind line 1402: handle requests");
         // Process HTTP stream-related events.
         loop {
             match self.h3_conn.poll(conn) {
@@ -1471,6 +1485,7 @@ impl HttpConn for Http3Conn {
                         conn, stream_id, &headers, &priority, false,
                     ) {
                         Ok(v) => v,
+                        
 
                         Err(quiche::h3::Error::StreamBlocked) => {
                             let response = PartialResponse {
@@ -1495,12 +1510,20 @@ impl HttpConn for Http3Conn {
                         },
                     }
 
+                    
+
                     let response = PartialResponse {
                         headers: None,
                         priority: None,
                         body,
                         written: 0,
                     };
+                    info!("Milind response body len: {:?}",response.body.len());
+                    let start = SystemTime::now();
+                    let since_the_epoch = start.duration_since(UNIX_EPOCH)
+                        .expect("Time went backwards");
+
+                    info!("Milind server timestamp: {}", since_the_epoch.as_micros());
 
                     partial_responses.insert(stream_id, response);
                 },
@@ -1593,6 +1616,7 @@ impl HttpConn for Http3Conn {
         debug!("{} stream {} is writable", conn.trace_id(), stream_id);
 
         if !partial_responses.contains_key(&stream_id) {
+            // info!("Milind, stream id {:?} not found", stream_id);
             return;
         }
 
@@ -1633,6 +1657,7 @@ impl HttpConn for Http3Conn {
             },
         };
 
+        info!("Milind written: {:?}, stream id: {:?}", written, stream_id);
         resp.written += written;
 
         if resp.written == resp.body.len() {
